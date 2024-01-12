@@ -1,33 +1,13 @@
 import cv2
 import json
 
-import xml.etree.ElementTree as ET
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 
-def read_content(xml_file: str):
+from utils import read_content
 
-    tree = ET.parse(xml_file)
-    root = tree.getroot()
 
-    list_with_all_boxes = []
-
-    for boxes in root.iter('object'):
-
-        filename = root.find('filename').text
-
-        ymin, xmin, ymax, xmax = None, None, None, None
-
-        ymin = int(boxes.find("bndbox/ymin").text)
-        xmin = int(boxes.find("bndbox/xmin").text)
-        ymax = int(boxes.find("bndbox/ymax").text)
-        xmax = int(boxes.find("bndbox/xmax").text)
-
-        list_with_single_boxes = [xmin, ymin, xmax, ymax]
-        list_with_all_boxes.append(list_with_single_boxes)
-
-    return filename, list_with_all_boxes
 
 # read splits.json
 with open('splits.json') as f:
