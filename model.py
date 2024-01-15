@@ -7,7 +7,7 @@ import torch
 import lightning as L
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.models import resnet50, ResNet50_Weights
+from torchvision.models import resnet18, ResNet18_Weights
 from torchmetrics import Accuracy
 
 class ResNetModule(L.LightningModule):
@@ -15,14 +15,14 @@ class ResNetModule(L.LightningModule):
     def __init__(self, config:dict):
         super().__init__()
         self.config = config
-        self.model = resnet50(weights = ResNet50_Weights.IMAGENET1K_V2)
+        self.model = resnet18(weights = ResNet18_Weights.DEFAULT)
 
         if self.config['freeze']:
             self._freeze_layers()
         else:
             pass
 
-        self.model.fc = nn.Linear(2048, 1, bias = True) # Defaul init of linear layer
+        self.model.fc = nn.Linear(512, 1, bias = True) # Defaul init of linear layer
 
         # Define the loss function 
         self.loss_fn = nn.BCEWithLogitsLoss()
