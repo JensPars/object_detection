@@ -40,6 +40,7 @@ def mAP(bboxes, scores, ground_truth, threshold = 0.5):
     return Recall, Precision, Area
 
 def plot_mAP(Recall, Precision, Area):
+    formatted_area = "{:.3f}".format(Area)
 
     # Create a plot
     plt.plot(Recall, Precision)
@@ -52,7 +53,7 @@ def plot_mAP(Recall, Precision, Area):
 
 
     # Add a title to the plot
-    plt.title(f'Approximate area under the curve: {Area}')
+    plt.title(f'Approximate area under the curve: {formatted_area}')
 
     # Show the plot
     plt.show()
