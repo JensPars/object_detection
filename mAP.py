@@ -36,7 +36,7 @@ def mAP(bboxes, scores, ground_truth, threshold = 0.5):
         Precision.append(T / (T+F))
         Recall.append(T / n_ground_truth)
         
-    Area = 0.5 * sum((Precision[i] + Precision[i + 1]) * (Recall[i + 1] - Recall[i]) for i in range(len(Recall) - 1))
+    Area = np.trapz(Precision, Recall)
     return Recall, Precision, Area
 
 def plot_mAP(Recall, Precision, Area):
