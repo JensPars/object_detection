@@ -3,7 +3,6 @@
 # on a pothole dataset
 
 from typing import Any
-from lightning.pytorch.utilities.types import STEP_OUTPUT
 import torch
 import lightning as L
 import torch.nn as nn
@@ -13,16 +12,21 @@ from torchmetrics import Accuracy
 
 class ResNet(L.LightningModule):
 
-    def __init__(self, config):
+    def __init__(self, config:dict):
         super().__init__()
         self.config = config
         self.model = resnet50(weights = ResNet50_Weights.IMAGENET1K_V2)
-        # TODO: Determine what the last layer is called.
-        self.model.fc = nn.Linear(512, 1)
-        
+        self.model.fc = nn.Linear(2048, 1, bias = True)
+        self._initWeightsLastLayer()
+
         # Define the loss function 
         self.loss_fn = nn.BCEWithLogitsLoss()
         self.accuracy = Accuracy(task = "binary")    
+    
+    def _initWeightsLastLayer(self):
+        intializer = nn.init.kaiming_normal_()
+        intializer(self.model.fc.weights)
+        intializer(self.model.fc.bias)
 
     def forward(self, x):
         return self.model(x)
