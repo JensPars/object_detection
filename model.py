@@ -10,23 +10,27 @@ import torch.nn.functional as F
 from torchvision.models import resnet50, ResNet50_Weights
 from torchmetrics import Accuracy
 
-class ResNet(L.LightningModule):
+class ResNetModule(L.LightningModule):
 
     def __init__(self, config:dict):
         super().__init__()
         self.config = config
         self.model = resnet50(weights = ResNet50_Weights.IMAGENET1K_V2)
-        self.model.fc = nn.Linear(2048, 1, bias = True)
-        self._initWeightsLastLayer()
+
+        if self.config['freeze']:
+            self._freeze_layers()
+        else:
+            pass
+
+        self.model.fc = nn.Linear(2048, 1, bias = True) # Defaul init of linear layer
 
         # Define the loss function 
         self.loss_fn = nn.BCEWithLogitsLoss()
-        self.accuracy = Accuracy(task = "binary")    
-    
-    def _initWeightsLastLayer(self):
-        intializer = nn.init.kaiming_normal_()
-        intializer(self.model.fc.weights)
-        intializer(self.model.fc.bias)
+        self.accuracy = Accuracy(task = "binary")
+
+    def _freeze_layers(self):
+        for param in self.model.parameters():
+            param.requires_grad = False
 
     def forward(self, x):
         return self.model(x)
@@ -39,14 +43,14 @@ class ResNet(L.LightningModule):
         # X is a n x n Tensor and y is a single value specifying
         # whether the image is a pothole or not
         X, y = batch 
-        logits = self(X)
+        logits = self(X).squeeze()
         loss = self.loss_fn(logits, y)
         self.log("train_loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         return loss
     
     def validation_step(self, batch, batch_idx):
         X, y = batch
-        logits = self(X)
+        logits = self(X).squeeze()
         loss = self.loss_fn(logits, y)
         acc = self.accuracy(F.sigmoid(logits), y)
         self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
