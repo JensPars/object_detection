@@ -3,12 +3,23 @@ import cv2
 import numpy as np
 import torch
 from torch.utils.data import Dataset
+from torchvision import transforms as T
+import matplotlib.pyplot as plt
 
 class CustomDataset(Dataset):
-    def __init__(self, json_file, iou_threshold):
+    def __init__(self, json_file, k1, k2, batch_size=32):
         self.json_file = json_file
-        self.iou_threshold = iou_threshold
+        self.k1 = k1
+        self.k2 = k2
         self.data = self._load_data()
+        self.keys = list(self.data.keys())
+        self.batch_size = batch_size
+        self.transform = T.Compose([
+            T.ToTensor(),
+            #T.Normalize(mean=[0.485, 0.456, 0.406], 
+            #            std=[0.229, 0.224, 0.225]),
+            T.Resize((224, 224)),
+        ])
 
     def _load_data(self):
         with open(self.json_file) as f:
@@ -16,9 +27,9 @@ class CustomDataset(Dataset):
         return data
 
     def _crop_and_resize(self, image, bbox):
-        x, y, w, h = bbox
-        cropped_image = image[y:y+h, x:x+w]
-        resized_image = cv2.resize(cropped_image, (224, 224))  # Adjust the size as needed
+        x1, y1, x2, y2 = bbox
+        cropped_image = image[x1:x2, y1:y2]
+        resized_image = self.transform(cropped_image)  # Adjust the size as needed
         return resized_image
 
     def _calculate_iou(self, bbox1, bbox2):
@@ -27,22 +38,68 @@ class CustomDataset(Dataset):
         pass
 
     def __len__(self):
-        return len(self.data)
+        return len(self.keys)
 
     def __getitem__(self, index):
-        item = self.data[index]
-        image_path = item['image_path']
-        bbox = item['bbox']
-        class_label = item['class_label']
-
+        image_path = self.keys[index]
         image = cv2.imread(image_path)
-        cropped_image = self._crop_and_resize(image, bbox)
+        bboxs = self.data[image_path]
+        IoUs = np.array([val['IoU'] for val in bboxs])
+        positive_idx = np.argwhere(IoUs >= self.k2)
+        negative_idx = np.argwhere(IoUs < self.k1)
+        # sample 25% positive and 75% negative
+        np.random.shuffle(positive_idx)
+        np.random.shuffle(negative_idx)
+        n_pos = int(self.batch_size*0.25)
+        n_neg = self.batch_size - n_pos
+        pos_idx = positive_idx[:n_pos]
+        neg_idx = negative_idx[:n_neg]
+        pos_bboxs = [bboxs[int(i)]['bbox'] for i in pos_idx]
+        neg_bboxs = [bboxs[int(i)]['bbox'] for i in neg_idx]
+        pos_imgs = []
+        for bbox in pos_bboxs:
+            cropped_image = self._crop_and_resize(image, bbox)
+            pos_imgs.append(cropped_image)
+        pos_imgs = torch.stack(pos_imgs)
+        pos_lbls = torch.ones(pos_imgs.shape[0])
+        neg_imgs = []
+        for bbox in neg_bboxs:
+            cropped_image = self._crop_and_resize(image, bbox)
+            neg_imgs.append(cropped_image)
+        neg_imgs = torch.stack(neg_imgs)
+        neg_lbls = torch.zeros(neg_imgs.shape[0])
+        batch = torch.concat((pos_imgs, neg_imgs), dim=0)
+        labels = torch.concat((pos_lbls, neg_lbls), dim=0)
+        return batch, labels, pos_bboxs, neg_bboxs, image
+    
 
-        # Calculate IoU between the cropped image's bounding box and the original bounding box
-        iou = self._calculate_iou(bbox, cropped_image_bbox)
 
-        # Conditionally assign class label based on the IoU threshold
-        if iou >= self.iou_threshold:
-            return torch.from_numpy(cropped_image), class_label
-        else:
-            return None, None
+if __name__ == "__main__":
+    json_file = "trainset.json"
+    k1 = 0.3
+    k2 = 0.7
+    batch_size = 32
+    dataset = CustomDataset(json_file, k1, k2, batch_size)
+    batch, labels, pos_bboxs, neg_bboxs, image = dataset[0]
+    vis = True
+    if vis:
+        # Plot negative and positive boxes on the image using cv2
+        for bbox in pos_bboxs:
+            x1, y1, x2, y2 = bbox
+            cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)  # Green rectangle for positive boxes
+            
+        for bbox in neg_bboxs:
+            x1, y1, x2, y2 = bbox
+            cv2.rectangle(image, (x1, y1), (x2, y2), (0, 0, 255), 2)  # Red rectangle for negative boxes
+            
+        cv2.imshow("Image with Bounding Boxes", image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    
+    else:
+        for i in range(batch.shape[0]):
+            plt.imshow(batch[i].permute(1, 2, 0))
+            plt.title(str(labels[i]))
+            plt.show()
+    
+   

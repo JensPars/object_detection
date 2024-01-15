@@ -7,20 +7,31 @@ import matplotlib.cm as cm
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from utils import read_content, max_iou, selective_search_proposal, edge_proposal
+from utils import read_content, max_iou, edge_proposal
 # load the input image
+
+import json
+import numpy as np
+
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NpEncoder, self).default(obj)
 
 
 # read val_splits.json
 with open('val_splits.json') as f:
     val_splits = json.load(f)
 root = 'annotated-images'
-train_set = val_splits['val']
+train_set = val_splits['train']
 ns = len(train_set)
-fig, axss = plt.subplots(ncols=3, nrows=ns, figsize=(24, 10*ns))
-vis = False
-ss_MABO = []
-edge_MABO = []
+n_boxes = 1000
+trainset = {}
 
 for n in range(ns):
     example = train_set[n]
@@ -28,21 +39,19 @@ for n in range(ns):
     imgpath = os.path.join(root, imgpath)
     img = cv2.imread(imgpath)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    edge_boxes = edge_proposal(img)
+    edge_boxes = edge_proposal(img, n_boxes)
     # extract boxes
-    edge_iou, edge_idx = [], []
     edge_bboxs = []
-    for region in regions:
-        edge_io, edge_id = max_iou(region, edge_boxes)
-        edge_iou.append(edge_io[0])
-        edge_idx.append(edge_id[0])
-        edge_bboxs.append(edge_boxes[edge_id[0]])
-    edge_MABO.append(np.mean(edge_iou))
+    for region in edge_boxes:
+        edge_io, edge_id = max_iou(region, regions)
+        edge_bboxs.append({'bbox': region,
+                           'IoU': edge_io[0]})
+        #print(edge_io[0])
+    trainset[imgpath] = edge_bboxs
     print(f"Image {n+1}/{ns} done.")
 
    
+# save trainset as json
+with open('trainset.json', 'w') as f:
+    json.dump(trainset, f, cls=NpEncoder)
 
-        
-
-print(f"Selective Search MABO: {np.mean(ss_MABO):.2f}")
-print(f"Edge Boxes MABO: {np.mean(edge_MABO):.2f}")
