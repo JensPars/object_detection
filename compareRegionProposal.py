@@ -16,9 +16,10 @@ with open('val_splits.json') as f:
     val_splits = json.load(f)
 root = 'annotated-images'
 train_set = val_splits['val']
-ns = len(train_set)
-fig, axss = plt.subplots(ncols=3, nrows=ns, figsize=(24, 10*ns))
-vis = False
+#⁄ns = len(train_set)
+ns  = 2 # number of images to visualize
+fig, axss = plt.subplots(ncols=3, nrows=ns, figsize=(10, 5))
+vis = True
 ss_MABO = []
 edge_MABO = []
 
@@ -29,7 +30,7 @@ for n in range(ns):
     img = cv2.imread(imgpath)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     ss_boxes = selective_search_proposal(img)
-    edge_boxes = edge_proposal(img)
+    edge_boxes = edge_proposal(img, 1000)
     # extract boxes
     ss_iou, ss_idx = [], []
     edge_iou, edge_idx = [], []
@@ -58,6 +59,7 @@ for n in range(ns):
 
         ax.set_title('Edge Boxes')
         ax.axis('off')
+        plt.tight_layout()
         ax.imshow(plot_img)
 
         plot_img = img.copy()
@@ -69,6 +71,7 @@ for n in range(ns):
 
         ax.set_title('Selective Search')
         ax.axis('off')
+        plt.tight_layout()
         ax.imshow(plot_img)
 
         plot_img = img.copy()
@@ -81,14 +84,15 @@ for n in range(ns):
         ax.imshow(plot_img)
 
         # tigh layout
-        #plt.tight_layout()
+        plt.tight_layout()
 
         # Create a colorbar legend
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=0.0, vmax=1.0))
         sm.set_array([])
-        cbar = plt.colorbar(sm, ax=axss, orientation='horizontal')
-        cbar.set_label('mIoU')
-        plt.savefig("region_proposal.png")
+        # cbar = plt.colorbar(sm, ax=axss, orientation='horizontal')
+        # cbar.set_label('mIoU')
+        plt.tight_layout()
+        plt.savefig("region_proposal.png",bbox_inches='tight', pad_inches=0.2)
 
         
 
