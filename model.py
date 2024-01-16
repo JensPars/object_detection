@@ -93,10 +93,9 @@ class ResNetModule(L.LightningModule):
         for i in range(X.shape[0]):
             _img = X[i,:,:,:].squeeze().numpy().cpu()
             crops, bboxes = self._genRegionProps(_img)
-            for crop, bbox in zip(crops, bboxes):
-                crop = torch.ToTensor(crop).to("cuda")
+            for crop in crops:
+                crop = crop.to("cuda")
                 logits.append(self(crop))
-
 
         
         
