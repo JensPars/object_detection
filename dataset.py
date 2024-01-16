@@ -83,7 +83,7 @@ class CustomDataset(Dataset):
         neg_lbls = torch.zeros(neg_imgs.shape[0])
         batch = torch.concat((pos_imgs, neg_imgs), dim=0)
         labels = torch.concat((pos_lbls, neg_lbls), dim=0)
-        return batch, labels, pos_bboxs, neg_bboxs, image
+        return batch, labels#, pos_bboxs, neg_bboxs, image
     
 
 

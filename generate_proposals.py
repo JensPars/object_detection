@@ -70,18 +70,17 @@ testset = {}
 for n in range(ns):
     example = train_set[n]
     imgpath, regions = read_content(example)
-    # imgpath = os.path.join(root, imgpath)
-    # img = cv2.imread(imgpath)
-    # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    # edge_boxes = edge_proposal(img, n_boxes)
+    imgpath = os.path.join(root, imgpath)
+    img = cv2.imread(imgpath)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    edge_boxes = edge_proposal(img, n_boxes)
     # extract boxes
-    # proposals = []
-    # for region in edge_boxes:
-        # edge_io, edge_id = max_iou(region, regions)
-        # proposals.append({'bbox': region,
-        #                    'IoU': edge_io[0]})
-        # #print(edge_io[0])
-    testset[imgpath] = {
+    proposals = []
+    for region in edge_boxes:
+
+        proposals.append({'bbox': region})
+        #print(edge_io[0])
+    testset[imgpath] = {'proposals': proposals,
                          'GT': regions}
 
     print(f"Image {n+1}/{ns} done.")
