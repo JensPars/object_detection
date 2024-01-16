@@ -11,7 +11,7 @@ from torchvision.models import resnet18, ResNet18_Weights
 from torchmetrics import Accuracy
 from torchvision import transforms as T
 from utils import edge_proposal
-
+from mAP import mAP
 
 class ResNetModule(L.LightningModule):
 
@@ -89,17 +89,15 @@ class ResNetModule(L.LightningModule):
     def test_step(self, batch, batch_idx):
         # TODO: Implement the logic need for assesing the performance on the test set.
         X, y = batch
-        logits = []
+        preds = []
         for i in range(X.shape[0]):
             _img = X[i,:,:,:].squeeze().numpy().cpu()
             crops, bboxes = self._genRegionProps(_img)
             for crop in crops:
                 crop = crop.to("cuda")
-                logits.append(self(crop))
-
-        
-        
-        #loss = self.loss_fn(logits, y)
-        #self.log("test_loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
-
-        return NotImplementedError()
+                preds.append(F.sigmoid(self(crop)))
+        # Convert to tensors
+        preds = torch.stack(preds, dim = 0)
+        bboxes = torch.Tensor(bboxes)
+        rec, pre, ar = mAP(bboxes=bboxes, scores = preds, ground_truth=y, threshold=0.5)
+        self.log("mAP", ar, on_step=False, on_epoch=True, prog_bar=True, logger=True)
