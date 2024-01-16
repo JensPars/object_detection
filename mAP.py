@@ -23,8 +23,14 @@ def mAP(bboxes, scores, ground_truth, threshold = 0.5):
           break
 
         iou_list = []
-        for gt in ground_truth:
-            iou_list.append(bb_intersection_over_union(box.numpy(), gt.numpy()))
+    
+        if n_ground_truth == 1:
+            iou_list.append(bb_intersection_over_union(box.cpu().numpy(), gt.cpu().numpy()))
+        else:
+            for gt in [ground_truth]:
+                print("Ground Truths: ", gt)
+                print("Box: ", box)
+                iou_list.append(bb_intersection_over_union(box.cpu().numpy(), gt.cpu().numpy()))
         iou_list = np.array(iou_list)
         if np.max(iou_list) > 0.5:
             idx = np.argmax(iou_list)

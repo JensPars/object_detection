@@ -35,7 +35,7 @@ class CustomDataset(Dataset):
             resized_image = self.transform(cropped_image)  # Adjust the size as needed
             return resized_image
         else:
-            print("skip")
+            #print("skip")
             return
 
     def _calculate_iou(self, bbox1, bbox2):

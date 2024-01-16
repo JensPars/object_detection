@@ -29,13 +29,13 @@ class ResNetModule(L.LightningModule):
 
         # Define the loss function 
         self.loss_fn = nn.BCEWithLogitsLoss()
-        #self.accuracy = Accuracy(task = "binary")
+        self.accuracy = Accuracy(task = "binary")
 
         # Transform for crops:
         self.transform = T.Compose([
             T.ToTensor(),
-            #T.Normalize(mean=[0.485, 0.456, 0.406], 
-            #            std=[0.229, 0.224, 0.225]),
+            T.Normalize(mean=[0.485, 0.456, 0.406], 
+                       std=[0.229, 0.224, 0.225]),
             T.Resize((224, 224)),
         ])
 
@@ -81,23 +81,15 @@ class ResNetModule(L.LightningModule):
         X, y = batch
         logits = self(X).squeeze()
         loss = self.loss_fn(logits, y)
-        #acc = self.accuracy(F.sigmoid(logits), y)
+        acc = self.accuracy(F.sigmoid(logits), y)
         self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
-        #self.log("val_acc", acc, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+        self.log("val_acc", acc, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         return loss
     
     def test_step(self, batch, batch_idx):
         # TODO: Implement the logic need for assesing the performance on the test set.
-        X, y = batch
-        preds = []
-        for i in range(X.shape[0]):
-            _img = X[i,:,:,:].squeeze().numpy().cpu()
-            crops, bboxes = self._genRegionProps(_img)
-            for crop in crops:
-                crop = crop.to("cuda")
-                preds.append(F.sigmoid(self(crop)))
+        X, bboxes, gts = batch
+        preds = F.sigmoid(self(X.squeeze()))
         # Convert to tensors
-        preds = torch.stack(preds, dim = 0)
-        bboxes = torch.Tensor(bboxes)
-        rec, pre, ar = mAP(bboxes=bboxes, scores = preds, ground_truth=y, threshold=0.5)
+        rec, pre, ar = mAP(bboxes=bboxes.squeeze(), scores = preds.squeeze(), ground_truth=gts.squeeze(), threshold=0.5)
         self.log("mAP", ar, on_step=False, on_epoch=True, prog_bar=True, logger=True)
