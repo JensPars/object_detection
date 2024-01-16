@@ -13,6 +13,7 @@ from utils import read_content
 with open('splits.json') as f:
     splits = json.load(f)
 train = splits['train']
+test = splits['test']
 from pathlib import Path
 root = Path('annotated-images')
 
@@ -24,9 +25,16 @@ train_splits = int(0.8 * len(paths))
 val_splits = {}
 val_splits["train"] = paths[:train_splits]
 val_splits["val"] = paths[train_splits:]
+paths_test = [str(root/path) for path in test]
+test_splits = {}
+test_splits["test"] = paths_test
 # save as json
 with open('val_splits.json', 'w') as f:
     json.dump(val_splits, f)
+
+with open('test_splits.json', 'w') as f:
+    json.dump(test_splits, f)
+
 
 # read annotations
 for path in paths:

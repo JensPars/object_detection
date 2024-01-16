@@ -24,36 +24,69 @@ class NpEncoder(json.JSONEncoder):
         return super(NpEncoder, self).default(obj)
 
 
-# read val_splits.json
-with open('val_splits.json') as f:
-    val_splits = json.load(f)
+# # read val_splits.json
+# with open('val_splits.json') as f:
+#     val_splits = json.load(f)
+# root = 'annotated-images'
+# train_set = val_splits['val']
+# ns = len(train_set)
+# n_boxes = 1000
+# trainset = {}
+
+# for n in range(ns):
+#     example = train_set[n]
+#     imgpath, regions = read_content(example)
+#     imgpath = os.path.join(root, imgpath)
+#     img = cv2.imread(imgpath)
+#     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+#     edge_boxes = edge_proposal(img, n_boxes)
+#     # extract boxes
+#     proposals = []
+#     for region in edge_boxes:
+#         edge_io, edge_id = max_iou(region, regions)
+#         proposals.append({'bbox': region,
+#                            'IoU': edge_io[0]})
+#         #print(edge_io[0])
+#     trainset[imgpath] = {'proposals': proposals,
+#                          'GT': regions}
+
+#     print(f"Image {n+1}/{ns} done.")
+
+   
+# # save trainset as json
+# with open('valset.json', 'w') as f:
+#     json.dump(trainset, f, cls=NpEncoder)
+
+### TEST ###
+# read test_splits.json
+with open('test_splits.json') as f:
+    test_splits = json.load(f)
 root = 'annotated-images'
-train_set = val_splits['val']
+train_set = test_splits['test']
 ns = len(train_set)
 n_boxes = 1000
-trainset = {}
+testset = {}
 
 for n in range(ns):
     example = train_set[n]
     imgpath, regions = read_content(example)
-    imgpath = os.path.join(root, imgpath)
-    img = cv2.imread(imgpath)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    edge_boxes = edge_proposal(img, n_boxes)
+    # imgpath = os.path.join(root, imgpath)
+    # img = cv2.imread(imgpath)
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    # edge_boxes = edge_proposal(img, n_boxes)
     # extract boxes
-    proposals = []
-    for region in edge_boxes:
-        edge_io, edge_id = max_iou(region, regions)
-        proposals.append({'bbox': region,
-                           'IoU': edge_io[0]})
-        #print(edge_io[0])
-    trainset[imgpath] = {'proposals': proposals,
+    # proposals = []
+    # for region in edge_boxes:
+        # edge_io, edge_id = max_iou(region, regions)
+        # proposals.append({'bbox': region,
+        #                    'IoU': edge_io[0]})
+        # #print(edge_io[0])
+    testset[imgpath] = {
                          'GT': regions}
 
     print(f"Image {n+1}/{ns} done.")
 
    
 # save trainset as json
-with open('valset.json', 'w') as f:
-    json.dump(trainset, f, cls=NpEncoder)
-
+with open('testset.json', 'w') as f:
+    json.dump(testset, f, cls=NpEncoder)
