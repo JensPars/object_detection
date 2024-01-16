@@ -9,6 +9,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models import resnet18, ResNet18_Weights
 from torchmetrics import Accuracy
+from torchvision import transforms as T
+from utils import edge_proposal
+
 
 class ResNetModule(L.LightningModule):
 
@@ -28,9 +31,35 @@ class ResNetModule(L.LightningModule):
         self.loss_fn = nn.BCEWithLogitsLoss()
         self.accuracy = Accuracy(task = "binary")
 
+        # Transform for crops:
+        self.transform = T.Compose([
+            T.ToTensor(),
+            #T.Normalize(mean=[0.485, 0.456, 0.406], 
+            #            std=[0.229, 0.224, 0.225]),
+            T.Resize((224, 224)),
+        ])
+
     def _freeze_layers(self):
         for param in self.model.parameters():
             param.requires_grad = False
+    
+    def _crop_and_resize(self, image, bbox):
+        x1, y1, x2, y2 = bbox
+        cropped_image = image[x1:x2, y1:y2]
+        resized_image = self.transform(cropped_image)  # Adjust the size as needed
+        return resized_image
+    
+    def _genRegionProps(self, X, method:str="edge"):
+        if method == "edge":
+            assert X.shape[0] == 3, "The channels batch dimension is not removed."
+            bboxs = edge_proposal(X, 1000) # TODO: Might an argmument we would want in config.
+            imgs = [self._crop_and_resize(X, bbox) for bbox in bboxs] 
+            assert len(bboxs) == imgs, "Different lengths of the output."       
+        elif method == "ss":
+            raise NotImplementedError("Method is not yet supported. Try 'edge'.")
+        else:
+            raise ValueError("Unknown method for generating region proposals. Try 'ss' or 'edge'")
+        return imgs, bboxs
 
     def forward(self, x):
         return self.model(x)
@@ -60,8 +89,18 @@ class ResNetModule(L.LightningModule):
     def test_step(self, batch, batch_idx):
         # TODO: Implement the logic need for assesing the performance on the test set.
         X, y = batch
-        logits = self(X)
-        loss = self.loss_fn(logits, y)
-        self.log("test_loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+        logits = []
+        for i in range(X.shape[0]):
+            _img = X[i,:,:,:].squeeze().numpy().cpu()
+            crops, bboxes = self._genRegionProps(_img)
+            for crop, bbox in zip(crops, bboxes):
+                crop = torch.ToTensor(crop).to("cuda")
+                logits.append(self(crop))
+
+
+        
+        
+        #loss = self.loss_fn(logits, y)
+        #self.log("test_loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
         return NotImplementedError()
