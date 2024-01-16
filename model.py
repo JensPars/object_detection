@@ -8,7 +8,7 @@ import lightning as L
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models import resnet50, ResNet50_Weights
-from torchmetrics import Accuracy
+#from torchmetrics import Accuracy
 
 class ResNetModule(L.LightningModule):
 
@@ -26,7 +26,7 @@ class ResNetModule(L.LightningModule):
 
         # Define the loss function 
         self.loss_fn = nn.BCEWithLogitsLoss()
-        self.accuracy = Accuracy(task = "binary")
+        #self.accuracy = Accuracy(task = "binary")
 
     def _freeze_layers(self):
         for param in self.model.parameters():
@@ -36,7 +36,7 @@ class ResNetModule(L.LightningModule):
         return self.model(x)
     
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.config['lr'], weight_decay=self.config['weight_decay'])
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.config['lr'])
         return optimizer
     
     def training_step(self, batch, batch_idx):
@@ -52,9 +52,9 @@ class ResNetModule(L.LightningModule):
         X, y = batch
         logits = self(X).squeeze()
         loss = self.loss_fn(logits, y)
-        acc = self.accuracy(F.sigmoid(logits), y)
+        #acc = self.accuracy(F.sigmoid(logits), y)
         self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
-        self.log("val_acc", acc, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+        #self.log("val_acc", acc, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         return loss
     
     def test_step(self, batch, batch_idx):

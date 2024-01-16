@@ -1,6 +1,6 @@
 import cv2
 import json
-import selectivesearch
+#import selectivesearch
 import os
 import numpy as np
 import matplotlib.cm as cm
@@ -28,7 +28,7 @@ class NpEncoder(json.JSONEncoder):
 with open('val_splits.json') as f:
     val_splits = json.load(f)
 root = 'annotated-images'
-train_set = val_splits['train']
+train_set = val_splits['val']
 ns = len(train_set)
 n_boxes = 1000
 trainset = {}
@@ -41,17 +41,19 @@ for n in range(ns):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     edge_boxes = edge_proposal(img, n_boxes)
     # extract boxes
-    edge_bboxs = []
+    proposals = []
     for region in edge_boxes:
         edge_io, edge_id = max_iou(region, regions)
-        edge_bboxs.append({'bbox': region,
+        proposals.append({'bbox': region,
                            'IoU': edge_io[0]})
         #print(edge_io[0])
-    trainset[imgpath] = edge_bboxs
+    trainset[imgpath] = {'proposals': proposals,
+                         'GT': regions}
+
     print(f"Image {n+1}/{ns} done.")
 
    
 # save trainset as json
-with open('trainset.json', 'w') as f:
+with open('valset.json', 'w') as f:
     json.dump(trainset, f, cls=NpEncoder)
 

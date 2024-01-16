@@ -16,8 +16,8 @@ class CustomDataset(Dataset):
         self.batch_size = batch_size
         self.transform = T.Compose([
             T.ToTensor(),
-            #T.Normalize(mean=[0.485, 0.456, 0.406], 
-            #            std=[0.229, 0.224, 0.225]),
+            T.Normalize(mean=[0.485, 0.456, 0.406], 
+                        std=[0.229, 0.224, 0.225]),
             T.Resize((224, 224)),
         ])
 
@@ -28,9 +28,15 @@ class CustomDataset(Dataset):
 
     def _crop_and_resize(self, image, bbox):
         x1, y1, x2, y2 = bbox
-        cropped_image = image[x1:x2, y1:y2]
-        resized_image = self.transform(cropped_image)  # Adjust the size as needed
-        return resized_image
+        #print(image.shape)
+        if x2-x1 > 0 and y2-y1 > 0:
+            cropped_image = image[y1:y2, x1:x2]
+            #print(cropped_image.shape)
+            resized_image = self.transform(cropped_image)  # Adjust the size as needed
+            return resized_image
+        else:
+            print("skip")
+            return
 
     def _calculate_iou(self, bbox1, bbox2):
         # Calculate IoU (Intersection over Union) between two bounding boxes
@@ -43,22 +49,29 @@ class CustomDataset(Dataset):
     def __getitem__(self, index):
         image_path = self.keys[index]
         image = cv2.imread(image_path)
-        bboxs = self.data[image_path]
+        bboxs = self.data[image_path]['proposals']
+        gt = self.data[image_path]['GT']
         IoUs = np.array([val['IoU'] for val in bboxs])
         positive_idx = np.argwhere(IoUs >= self.k2)
+        if len(positive_idx) == 0:
+            return self.__getitem__(np.random.randint(0, len(self.keys)))
         negative_idx = np.argwhere(IoUs < self.k1)
         # sample 25% positive and 75% negative
         np.random.shuffle(positive_idx)
         np.random.shuffle(negative_idx)
         n_pos = int(self.batch_size*0.25)
+        if len(positive_idx) + len(gt) < n_pos:
+            n_pos = len(positive_idx) + len(gt)
         n_neg = self.batch_size - n_pos
         pos_idx = positive_idx[:n_pos]
         neg_idx = negative_idx[:n_neg]
-        pos_bboxs = [bboxs[int(i)]['bbox'] for i in pos_idx]
+        pos_bboxs = [bboxs[int(i)]['bbox'] for i in pos_idx] + gt
         neg_bboxs = [bboxs[int(i)]['bbox'] for i in neg_idx]
         pos_imgs = []
         for bbox in pos_bboxs:
             cropped_image = self._crop_and_resize(image, bbox)
+            if cropped_image is None:
+                continue
             pos_imgs.append(cropped_image)
         pos_imgs = torch.stack(pos_imgs)
         pos_lbls = torch.ones(pos_imgs.shape[0])
@@ -86,6 +99,8 @@ if __name__ == "__main__":
         # Plot negative and positive boxes on the image using cv2
         for bbox in pos_bboxs:
             x1, y1, x2, y2 = bbox
+            # switch x and y
+            #x1, y1, x2, y2 = y1, x1, y2, x2
             cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)  # Green rectangle for positive boxes
             
         for bbox in neg_bboxs:
