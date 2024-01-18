@@ -91,5 +91,5 @@ class ResNetModule(L.LightningModule):
         X, bboxes, gts = batch
         preds = F.sigmoid(self(X.squeeze()))
         # Convert to tensors
-        rec, pre, ar = mAP(bboxes=bboxes.squeeze(), scores = preds.squeeze(), ground_truth=gts.squeeze(), threshold=0.5)
+        rec, pre, ar = mAP(bboxes=bboxes.squeeze(), scores = preds.squeeze(), ground_truth=gts, threshold=0.5)
         self.log("mAP", ar, on_step=False, on_epoch=True, prog_bar=True, logger=True)

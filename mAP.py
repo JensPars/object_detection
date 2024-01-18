@@ -7,6 +7,10 @@ from utils import bb_intersection_over_union
 
 def mAP(bboxes, scores, ground_truth, threshold = 0.5):
     filtered_boxes_idx = torchvision.ops.nms(bboxes, scores, threshold)
+    bboxes = bboxes.cpu()
+    scores = scores.cpu()
+    ground_truth = ground_truth.squeeze(0).cpu()
+    filtered_boxes_idx = filtered_boxes_idx.cpu()
     bboxes_kept = bboxes[filtered_boxes_idx]
     scores_kept = scores[filtered_boxes_idx]
     scores_sorted, order = torch.sort(scores_kept, descending = True)
@@ -18,19 +22,21 @@ def mAP(bboxes, scores, ground_truth, threshold = 0.5):
     Recall = [0]
     Precision = [1]
     
+    # print("Shape of ground truth: ", ground_truth.shape)
+    # print(ground_truth)
     for box in bboxes_sorted:
         if len(ground_truth) == 0:
           break
 
         iou_list = []
     
-        if n_ground_truth == 1:
-            iou_list.append(bb_intersection_over_union(box.cpu().numpy(), gt.cpu().numpy()))
-        else:
-            for gt in [ground_truth]:
-                print("Ground Truths: ", gt)
-                print("Box: ", box)
-                iou_list.append(bb_intersection_over_union(box.cpu().numpy(), gt.cpu().numpy()))
+        # if ground_truth.shape[0] == 1:
+        #     iou_list.append(bb_intersection_over_union(box.numpy(), gt.numpy()))
+        # else:
+        for gt in ground_truth:
+            # print("Ground Truths: ", gt)
+            # print("Box: ", box)
+            iou_list.append(bb_intersection_over_union(box.numpy(), gt.numpy()))
         iou_list = np.array(iou_list)
         if np.max(iou_list) > 0.5:
             idx = np.argmax(iou_list)

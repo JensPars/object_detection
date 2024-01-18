@@ -54,6 +54,9 @@ class CustomTestDataset(Dataset):
                 continue
             _imgs.append(cropped_image)
         # Make sure the output is tensors
+        # if _imgs == []:
+        #     _imgs.append(self.transform(image))
+        
         batch = torch.stack(_imgs)
         bboxs = torch.stack(bboxs)
         # Convert GTs to tensors.
@@ -65,4 +68,5 @@ class CustomTestDataset(Dataset):
 # example = sets[0]
 # print("Shape of batches", example[0].shape)
 # print("Shape of bboxs", example[1].shape)
-# print("Shape of gt", example[2].shape)
+# print("Shape of gt", example[2].shape[0])
+# print(example[2])

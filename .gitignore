@@ -9,3 +9,4 @@ __pycache__/
 
 *.npy
 lightning_logs/
+models/*
